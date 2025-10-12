@@ -1,0 +1,14 @@
+requests
+fitz
+tqdm
+langchain
+
+langchain 
+langchain-text-splitters 
+pypdf 
+langchain-google-genai
+langchain-community 
+langgraph
+typing
+langchain-chroma
+sentence_transformers
