@@ -14,3 +14,5 @@ def web_search_node(state: KnowledgeTeamState, agent: AgentExecutor, name: str =
     return {
         "messages": [AIMessage(content=output, name=name)]
     }
+
+

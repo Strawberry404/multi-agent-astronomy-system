@@ -5,10 +5,17 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 
 from config.config import Config
 from state.state_definitions import KnowledgeTeamState
+
+# one node in here
 from agents.knowledge_team.rag_retriever import rag_retriever_node
+
+#another node in here
 from agents.knowledge_team.web_search import web_search_node
+
+#another node in here
 from agents.knowledge_team.citation_manager import citation_manager_node
-from agents.supervisor import supervisor_node
+
+from agents.Managers.supervisor import supervisor_node
 from utils.helpers import create_agent
 
 
@@ -62,3 +69,4 @@ def build_knowledge_team():
 
 # Compile the Knowledge Team
 knowledge_team = build_knowledge_team()
+

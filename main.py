@@ -1,6 +1,6 @@
 from typing import List
 from langchain_core.messages import HumanMessage
-from graphs.knowledge_team_graph import knowledge_team
+from agents.Managers.knowledge_team_graph import knowledge_team
 
 
 def ask_astronomy_question(question: str, verbose: bool = True) -> dict:
@@ -88,4 +88,4 @@ if __name__ == "__main__":
     print("🌟" * 40)
     
     # Example usage
-    result = ask_astronomy_question("What is a neutron star?")
+    result = ask_astronomy_question("what are the different galaxies known to human ")

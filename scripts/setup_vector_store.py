@@ -1,9 +1,8 @@
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-
-from config.config import Config
+from config.config import Config 
 
 
 def setup_vector_store():
@@ -16,8 +15,8 @@ def setup_vector_store():
     
     print("\n✂️ Splitting documents...")
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=5000,
-        chunk_overlap=500,
+        chunk_size=Config.CHUNK_SIZE,
+        chunk_overlap=Config.CHUNK_OVERLAP,
         add_start_index=True
     )
     all_splits = text_splitter.split_documents(docs)
