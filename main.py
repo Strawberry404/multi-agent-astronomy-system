@@ -1,91 +1,57 @@
-from typing import List
+import os
+import sys
+from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
-from agents.Managers.knowledge_team_graph import knowledge_team
+from graphs.main_graph import main_graph
 
+# Load environment variables
+load_dotenv()
 
-def ask_astronomy_question(question: str, verbose: bool = True) -> dict:
+def ask_astronomy_question(question: str):
     """
-    Main interface to ask astronomy questions using the Knowledge Team
-    
-    Args:
-        question: The astronomy question
-        verbose: Print detailed execution trace
-        
-    Returns:
-        Complete state including answer, sources, and citations
+    Main entry point for the Astronomy Multi-Agent System.
     """
-    if verbose:
-        print("=" * 80)
-        print(f"🔭 ASTRONOMY QUESTION")
-        print("=" * 80)
-        print(f"Q: {question}\n")
+    print(f"\n🚀 Starting Astronomy Agent Session...")
+    print(f"❓ Question: {question}\n")
     
     initial_state = {
         "messages": [HumanMessage(content=question)],
-        "team_members": ["rag_retriever", "search", "citation_manager"],
         "next": "",
+        "astronomical_data": {},
+        "calculations": {},
+        "visibility_info": {},
         "sources": [],
-        "citations": []
+        "citations": [],
+        "location": {"lat": 40.7128, "lon": -74.0060}, # Default NYC
     }
     
     final_state = None
-    for event in knowledge_team.stream(initial_state, stream_mode='values'):
-        if event.get("messages"):
-            latest = event["messages"][-1]
-            if verbose:
-                print(f"\n{'─' * 60}")
-                print(f"Agent: {latest.name}")
-                print(f"Output: {latest.content[:200]}...")
-                print(f"{'─' * 60}")
+    try:
+        # Check inputs
+        # (Optional validation)
+
+        # Run Graph
+        for event in main_graph.stream(initial_state):
+            for key, value in event.items():
+                # Print agent activities (just names for now to avoid clutter)
+                # Or detailed logs if needed
+                if "messages" in value and value["messages"]:
+                     last_msg = value["messages"][-1]
+                     print(f"🤖 [{key}]: {last_msg.content[:100]}...")
+            
+            final_state = event
+            
+    except Exception as e:
+        print(f"❌ Error during execution: {e}")
+        return None
         
-        final_state = event
-    
-    if verbose:
-        print("\n" + "=" * 80)
-        print("📊 FINAL RESULTS")
-        print("=" * 80)
-        
-        # Show the main answer (from RAG)
-        for msg in final_state.get("messages", []):
-            if msg.name == "rag_retriever":
-                print(f"\n📝 Answer:\n{msg.content}\n")
-        
-        # Show citations
-        if final_state.get("citations"):
-            print(f"📚 Citations: {len(final_state['citations'])} sources")
-            for citation in final_state["citations"]:
-                print(f"  [{citation['index']}] {citation['source']}")
-        
-        print("=" * 80 + "\n")
-    
+    print("\n✅ Session Complete.")
     return final_state
 
-
-def quick_ask(question: str) -> str:
-    """Quick question - just returns the answer"""
-    result = ask_astronomy_question(question, verbose=False)
-    for msg in result.get("messages", []):
-        if msg.name == "rag_retriever":
-            return msg.content
-    return "No answer generated"
-
-
-def batch_questions(questions: List[str]) -> List[dict]:
-    """Ask multiple questions in batch"""
-    results = []
-    for i, q in enumerate(questions, 1):
-        print(f"\n\n{'='*80}")
-        print(f"QUESTION {i}/{len(questions)}")
-        print(f"{'='*80}\n")
-        result = ask_astronomy_question(q, verbose=True)
-        results.append(result)
-    return results
-
-
 if __name__ == "__main__":
-    print("\n" + "🌟" * 40)
-    print("ASTRONOMY KNOWLEDGE TEAM - READY!")
-    print("🌟" * 40)
+    import argparse
+    parser = argparse.ArgumentParser(description="Astronomy Multi-Agent System")
+    parser.add_argument("--query", type=str, help="Question to ask", default="Show me Mars photos")
+    args = parser.parse_args()
     
-    # Example usage
-    result = ask_astronomy_question("what are the different galaxies known to human ")
+    ask_astronomy_question(args.query)

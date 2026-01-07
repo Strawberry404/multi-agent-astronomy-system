@@ -1,49 +1,31 @@
-
-#this is still not final
-
-from state.state_definitions import AstronomyState
+from langchain_core.messages import AIMessage
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
-from config.config import RAGConfig
+from config.config import Config
+from agents.supervisor import create_team_supervisor
+from typing import Dict, Any
 
-llm = ChatGoogleGenerativeAI(model=RAGConfig.LLM_MODEL)
-
-def astronomer_node(state: AstronomyState) -> dict:
-    """Main orchestrator - analyzes query and prepares for routing"""
-    print("🔭 Astronomer analyzing query...")
+def astronomer_agent_node(state: Dict[str, Any], llm) -> Dict[str, Any]:
+    """Main Orchestrator Agent (The 'Astronomer')"""
     
-    question = state['question']
+    # Define primary teams
+    teams = ["knowledge_team", "data_team", "output_team"]
     
-    # Simple analysis for now
-    query_info = {
-        'needs_rag': True,  # Always use RAG for now
-        'needs_realtime': False,  # Phase 4
-        'needs_calculation': False,  # Phase 4
-    }
+    supervisor_chain = create_team_supervisor(
+        llm,
+        (
+            "You are the Chief Astronomer, overseeing a multi-agent system. "
+            "Route user queries to the most appropriate specialized team:\n"
+            "- 'knowledge_team': For retrieving info from the PDF knowledge base or web search. (e.g. 'What is a black hole?', 'Latest news on SpaceX')\n"
+            "- 'data_team': For specific NASA data, photos, calculations, sky positions. (e.g. 'Show me Mars photos', 'Distance to Andromeda', 'Is Jupiter visible?')\n"
+            "- 'output_team': For creating educational explanations, observation plans, or visualizations using retrieved data. (e.g. 'Explain this to a child', 'Plan my viewing night', 'Plot this data')\n\n"
+            "If a request requires multiple teams, route to the first one needed, and they will pass data along via the state. "
+            "Respond FINISH when the user's request is fully satisfied."
+        ),
+        teams
+    )
     
-    metadata = state.get('metadata', {})
-    metadata['query_analysis'] = query_info
+    result = supervisor_chain.invoke(state)
+    next_step = result.get("next", "FINISH")
     
-    return {'metadata': metadata}
-
-def generate_answer_node(state: AstronomyState) -> dict:
-    """Generate final answer from all gathered context"""
-    print("💭 Generating final answer...")
-    
-    # Combine RAG context
-    docs_content = "\n\n".join([
-        doc.page_content for doc in state.get('rag_context', [])
-    ])
-    
-    prompt = f"""You are an expert astronomer. Answer the following question using the provided context.
-
-Question: {state['question']}
-
-Context:
-{docs_content}
-
-Provide a clear, accurate, and educational answer."""
-
-    response = llm.invoke(prompt)
-    answer = response.content if hasattr(response, 'content') else str(response)
-    
-    return {'answer': answer}
+    return {"next": next_step}
