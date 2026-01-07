@@ -1,11 +1,13 @@
-import streamlit as st
 import os
-import sys
+import re
+import traceback
+import streamlit as st
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage
 
-# Add project root to path so we can import modules
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+# Suppress gRPC ALTS warnings
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GLOG_minloglevel"] = "2"
 
 from graphs.main_graph import main_graph
 
@@ -21,7 +23,7 @@ with st.sidebar:
     st.markdown("""
     This system uses three specialized teams to answer your questions:
     
-    1. **Knowledge Team**: Searchesthe PDF knowledge base and web.
+    1. **Knowledge Team**: Searches the PDF knowledge base and web.
     2. **Data Team**: Fetches real-time data from NASA APIs (Photos, Objects) and performs calculations.
     3. **Output Team**: Explains concepts, plans observations, and creates visualizations.
     """)
@@ -49,12 +51,10 @@ if prompt := st.chat_input("Ask an astronomy question... (e.g., 'Show me Mars ph
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # placeholder for thinking
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         full_response = ""
         
-        # Initial State
         initial_state = {
             "messages": [HumanMessage(content=prompt)],
             "next": "",
@@ -66,42 +66,56 @@ if prompt := st.chat_input("Ask an astronomy question... (e.g., 'Show me Mars ph
             "location": {"lat": location_lat, "lon": location_lon},
         }
 
-        # Run graph
         status_container = st.status("Agents working...", expanded=True)
+        final_state = {}
         
         try:
             for event in main_graph.stream(initial_state):
                 for key, value in event.items():
-                    # Update status
+                    final_state.update(value)
                     if "messages" in value and value["messages"]:
                         last_msg = value["messages"][-1]
                         agent_name = key.replace("_", " ").title()
-                        
-                        # Show what each agent is doing
                         status_container.write(f"**{agent_name}**: {last_msg.content[:100]}...")
-                        
-                        # If output team produced something, accumulate it
-                        # But typically the final answer comes from the last step or we can just append
-                        # Here we just look at the final output or specific interesting updates
-                        
-                        # Determine if this is a 'final' type message to show in the main chat
-                        # Usually the Explainer or final agent content is what we want.
-                        # For now, we'll store the last message content as the response
                         if hasattr(last_msg, 'content'):
                             full_response = last_msg.content
             
             status_container.update(label="Complete!", state="complete", expanded=False)
-            
-            # Display response
             message_placeholder.markdown(full_response)
             
-            # Use regex or check for image paths in the response to display actual images if markdown didn't catch them
-            # (Streamlit markdown handles local images if path is correct relative to app, 
-            # but usually st.image is better. For now relying on markdown ![]() syntax which st.markdown supports)
+            # Display generated visualizations
+            img_matches = re.findall(r'\((static/.*?\.png)\)', full_response)
+            if img_matches:
+                for img_path in img_matches:
+                    if os.path.exists(img_path):
+                        st.image(img_path, caption="Generated Visualization")
+
+            # Display NASA data
+            final_data = {}
+            if "astronomical_data" in final_state:
+                final_data = final_state["astronomical_data"]
+            elif "data_team" in final_state and "astronomical_data" in final_state["data_team"]:
+                final_data = final_state["data_team"]["astronomical_data"]
             
-            # Add assistant message to history
+            if final_data:
+                if "photos" in final_data:
+                    st.subheader("Mars Rover Photos")
+                    photos = final_data["photos"][:3]
+                    cols = st.columns(len(photos))
+                    for idx, photo in enumerate(photos):
+                        with cols[idx]:
+                            st.image(photo.get('img_src'), caption=f"{photo.get('camera', {}).get('full_name')} ({photo.get('earth_date')})")
+                
+                if "url" in final_data and "title" in final_data:
+                    st.subheader(f"APOD: {final_data.get('title')}")
+                    if final_data.get("media_type") == "image":
+                        st.image(final_data.get("url"), caption=final_data.get("explanation"))
+                    elif final_data.get("media_type") == "video":
+                        st.video(final_data.get("url"))
+
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
             status_container.update(label="Error", state="error")
             st.error(f"Error: {str(e)}")
+            st.code(traceback.format_exc())

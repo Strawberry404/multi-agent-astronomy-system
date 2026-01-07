@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from state.state_definitions import DataTeamState
 
 try:
@@ -10,7 +10,7 @@ except ImportError:
     EPHEM_AVAILABLE = False
 
 def get_object_position(object_name: str, lat: float, lon: float, 
-                       date_time: Optional[datetime] = None) -> Dict:
+                       date_time: Optional[datetime] = None) -> Dict[str, Any]:
     """Calculate object position and visibility"""
     if not EPHEM_AVAILABLE:
         return {"error": "PyEphem not installed"}
@@ -18,7 +18,7 @@ def get_object_position(object_name: str, lat: float, lon: float,
     observer = ephem.Observer()
     observer.lat = str(lat)
     observer.lon = str(lon)
-    observer.date = date_time or datetime.utcnow()
+    observer.date = date_time or datetime.now(timezone.utc)
     
     object_map = {
         "sun": ephem.Sun(),
@@ -38,7 +38,7 @@ def get_object_position(object_name: str, lat: float, lon: float,
     try:
         next_rising = observer.next_rising(obj).datetime()
         next_setting = observer.next_setting(obj).datetime()
-    except:
+    except Exception:
         next_rising = next_setting = None
     
     return {
@@ -54,10 +54,15 @@ def sky_position_node(state: DataTeamState) -> dict:
     """Sky Position Agent main function"""
     print("\n🌍 [SKY POSITION] Calculating positions...")
     
-    if not state["messages"]:
+    messages = state.get("messages", [])
+    query = ""
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+             query = m.content.lower()
+             break
+
+    if not query:
         return {"messages": []}
-    
-    query = state["messages"][-1].content.lower()
     location = state.get("location", {"lat": 40.7128, "lon": -74.0060})
     
     visibility_info = {}

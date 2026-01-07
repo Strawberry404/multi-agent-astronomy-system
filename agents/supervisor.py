@@ -29,7 +29,7 @@ def create_team_supervisor(llm: ChatGoogleGenerativeAI, system_prompt: str, memb
             ("system", system_prompt),
             MessagesPlaceholder(variable_name="messages"),
             (
-                "system",
+                "human",
                 "Given the conversation above, who should act next? "
                 "Or should we FINISH? Select one of: {options}",
             ),

@@ -8,14 +8,20 @@ from agents.output_team.observation_planner import observation_planner_node
 from agents.output_team.visualizer import visualizer_agent_node
 from agents.supervisor import create_team_supervisor
 
-# Define a local state for output team if not using the global one
-# For simplicity, we assume the passed state has necessary fields
-# In main.py, we'll ensure state compatibility
+from typing import Dict, Any
 
-def output_supervisor_node(state: dict, llm) -> dict:
+
+def output_supervisor_node(state: Dict[str, Any], llm) -> Dict[str, Any]:
     """Output Team Supervisor"""
-    # Assuming 'team_members' key exists or we define it here
     members = ["explainer", "observation_planner", "visualizer"]
+    
+    # Check if any agent has already responded
+    messages = state.get("messages", [])
+    agent_responses = [msg for msg in messages if hasattr(msg, 'name') and msg.name in members]
+    
+    # If we already have a response from an agent, finish
+    if agent_responses:
+        return {"next": "FINISH"}
     
     supervisor_chain = create_team_supervisor(
         llm,
@@ -24,7 +30,7 @@ def output_supervisor_node(state: dict, llm) -> dict:
             "- 'explainer': For explanations, educational content\n"
             "- 'observation_planner': For viewing times, equipment, sky location\n"
             "- 'visualizer': For charts, plots, images\n"
-            "Respond FINISH when done."
+            "IMPORTANT: After any agent responds, you MUST respond with FINISH. Do not route to another agent after a response has been generated."
         ),
         members
     )
@@ -37,7 +43,7 @@ def build_output_team():
     """Build Output Team graph"""
     llm = ChatGoogleGenerativeAI(model=Config.LLM_MODEL)
 
-    workflow = StateGraph(dict) # Using dict for flexibility, or proper TypedDict
+    workflow = StateGraph(dict)
     
     workflow.add_node("supervisor", functools.partial(output_supervisor_node, llm=llm))
     workflow.add_node("explainer", explainer_agent_node)

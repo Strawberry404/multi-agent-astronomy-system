@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from state.state_definitions import DataTeamState
 
 try:
@@ -44,10 +44,15 @@ def calculator_node(state: DataTeamState) -> dict:
     """Calculator Agent main function"""
     print("\n🔢 [CALCULATOR] Performing calculations...")
     
-    if not state["messages"]:
-        return {"messages": []}
+    messages = state.get("messages", [])
+    query = ""
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+             query = m.content.lower()
+             break
     
-    query = state["messages"][-1].content.lower()
+    if not query:
+        return {"messages": []}
     calculations = {}
     response_text = ""
     

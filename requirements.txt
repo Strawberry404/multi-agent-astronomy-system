@@ -1,5 +1,5 @@
 requests
-fitz
+PyMuPDF
 tqdm
 langchain
 langchain-core
@@ -8,7 +8,6 @@ pypdf
 langchain-google-genai
 langchain-community
 langgraph
-typing
 langchain-chroma
 sentence_transformers
 astropy
@@ -17,3 +16,6 @@ matplotlib
 pandas
 plotly
 streamlit
+langchain-huggingface
+langchain-tavily
+python-dotenv

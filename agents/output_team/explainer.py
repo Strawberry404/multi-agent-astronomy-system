@@ -1,29 +1,26 @@
-from langchain_core.messages import AIMessage
+from typing import Dict, Any
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from config.config import Config
-from state.state_definitions import DataTeamState  # We can reuse DataTeamState or create a new one. 
-# Ideally we should have a shared state or OutputTeamState. 
-# For now, let's assume we might receive a generic state or specific OutputTeamState.
-# Let's verify state/state_definitions.py content first? I recall seeing it in early steps.
-# It had KnowledgeTeamState, RAGState, DataTeamState. 
-# I should probably check if I need to add OutputTeamState. 
-# For now, I'll use a generic dict or define it locally if needed, but let's check state definitions in next turn if needed.
-# Actually, I'll implement it to accept a generic state dict for now, or assume it's part of the main state.
 
-def explainer_agent_node(state: dict):
-    """Educational Explainer Agent"""
+
+def explainer_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
+    """Educational explainer agent that generates clear explanations."""
     print("\n🎓 [EXPLAINER] Generating explanation...")
     
     llm = ChatGoogleGenerativeAI(model=Config.LLM_MODEL)
-    
     messages = state.get("messages", [])
-    if not messages:
+    query = ""
+    
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+            query = m.content
+            break
+
+    if not query:
         return {"messages": []}
     
-    query = messages[-1].content
-    
-    # Check if we have data from other teams to enrich the explanation
     data_context = ""
     if state.get("astronomical_data"):
         data_context += f"\nData Context: {state['astronomical_data']}"

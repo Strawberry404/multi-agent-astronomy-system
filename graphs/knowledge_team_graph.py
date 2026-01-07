@@ -12,14 +12,22 @@ def knowledge_supervisor_node(state: KnowledgeTeamState, llm) -> dict:
     """Knowledge Team Supervisor"""
     members = ["rag_retriever", "web_search", "citation_manager"]
     
+    # Check if we already have responses from agents
+    messages = state.get("messages", [])
+    agent_responses = [msg for msg in messages if hasattr(msg, 'name') and msg.name in members]
+    
+    # If we have responses and citations are done, finish
+    if agent_responses and state.get("citations"):
+        return {"next": "FINISH"}
+    
     supervisor_chain = create_team_supervisor(
         llm,
         (
             "You are the Knowledge Team supervisor. Route queries:\n"
             "- 'rag_retriever': For information from the internal knowledge base (PDF).\n"
             "- 'web_search': For recent events, news, or info not in the PDF.\n"
-            "- 'citation_manager': To format citations and sources.\n"
-            "Respond FINISH when done."
+            "- 'citation_manager': To format citations and sources (only after rag_retriever or web_search has responded).\n"
+            "IMPORTANT: After getting information and citations, respond FINISH. Do not loop."
         ),
         members
     )

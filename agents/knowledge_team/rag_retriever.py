@@ -1,7 +1,7 @@
 from langchain import hub
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import START, END, StateGraph
 
@@ -60,8 +60,15 @@ def rag_retriever_node(state: KnowledgeTeamState) -> dict:
     """RAG Retriever Agent - queries the PDF knowledge base"""
     print("\n📚 [RAG RETRIEVER] Processing query...")
     
-    if state["messages"]:
-        last_message = state["messages"][-1].content
+    messages = state.get("messages", [])
+    query = ""
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+             query = m.content
+             break
+             
+    if query:
+        last_message = query
         print(f"[RAG RETRIEVER] Query: {last_message}")
         
         # Invoke the RAG sub-agent

@@ -1,4 +1,3 @@
-
 import functools
 from langgraph.graph import START, END, StateGraph
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -12,6 +11,16 @@ from agents.supervisor import create_team_supervisor
 
 def data_supervisor_node(state: DataTeamState, llm) -> dict:
     """Data Team Supervisor"""
+    members = ["database_agent", "calculator", "sky_position"]
+    
+    # Check if we already have responses from agents
+    messages = state.get("messages", [])
+    agent_responses = [msg for msg in messages if hasattr(msg, 'name') and msg.name in members]
+    
+    # If we have a response, finish
+    if agent_responses:
+        return {"next": "FINISH"}
+    
     supervisor_chain = create_team_supervisor(
         llm,
         (
@@ -19,9 +28,9 @@ def data_supervisor_node(state: DataTeamState, llm) -> dict:
             "- 'database_agent': For NASA data, object info\n"
             "- 'calculator': For calculations, conversions\n"
             "- 'sky_position': For visibility, positions\n"
-            "Respond FINISH when done."
+            "IMPORTANT: After any agent responds, you MUST respond with FINISH. Do not route to another agent after a response has been generated."
         ),
-        state["team_members"]
+        members
     )
     
     result = supervisor_chain.invoke(state)

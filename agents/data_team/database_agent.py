@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from config.config import Config
 from state.state_definitions import DataTeamState
 
@@ -134,10 +134,16 @@ def database_agent_node(state: DataTeamState) -> dict:
     """Database Agent main function"""
     print("\n🛰️ [DATABASE AGENT] Querying databases...")
     
-    if not state["messages"]:
+    messages = state.get("messages", [])
+    query = ""
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+             query = m.content.lower()
+             break
+
+    if not query:
         return {"messages": []}
-    
-    query = state["messages"][-1].content.lower()
+        
     data = {}
     response_text = ""
     
@@ -169,6 +175,7 @@ def database_agent_node(state: DataTeamState) -> dict:
                 response_text += f"   Image: {photo.get('img_src', 'N/A')}\n\n"
             
             data['mars_photos'] = mars_data
+            data['photos'] = photos  # Also store photos directly for easier access
             
         elif "exoplanet" in query:
             exo_data = query_exoplanet_archive()

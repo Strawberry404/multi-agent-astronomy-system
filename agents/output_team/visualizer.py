@@ -1,19 +1,26 @@
-import matplotlib.pyplot as plt
-import io
-import base64
 import os
 import time
-from langchain_core.messages import AIMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import Dict, Any
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from langchain_core.messages import AIMessage, HumanMessage
 from config.config import Config
 
-def visualizer_agent_node(state: dict):
+
+def visualizer_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """Visualization Agent"""
     print("\n🎨 [VISUALIZER] Creating visualization...")
     
     messages = state.get("messages", [])
-    query = messages[-1].content.lower() if messages else ""
+    query = ""
+    for m in reversed(messages):
+        if isinstance(m, HumanMessage):
+             query = m.content.lower()
+             break
+
+    if not query:
+        return {"messages": []}
     
     response_text = ""
     
