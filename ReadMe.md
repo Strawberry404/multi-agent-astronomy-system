@@ -2,6 +2,8 @@
 
 A powerful multi-agent AI system designed to answer astronomy questions, fetch real-time NASA data, and generate educational visualizations. Powered by **LangGraph**, **Google Gemini**, and **NASA APIs**.
 
+> **📘 Technical Architecture**: For a detailed explanation of how the agents interact and the system architecture (including Mermaid diagrams), please see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ##  Features
 
 The system employs a team of specialized AI agents:
