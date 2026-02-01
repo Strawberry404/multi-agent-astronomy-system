@@ -23,6 +23,10 @@ The system employs a team of specialized AI agents:
     *   Creates custom charts and visualizations (e.g., Solar System orbits, star charts).
     *   Plans observation sessions based on your location.
 
+## Demos
+
+You can find example outputs and screenshots of the system in action in the `DEMOImages` folder. Use these to see the capabilities of the system before running it yourself.
+
 ## Prerequisites
 
 *   **Python 3.10+**
