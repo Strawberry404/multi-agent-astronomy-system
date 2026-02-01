@@ -1,5 +1,6 @@
 from langchain import hub
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain.prompts import ChatPromptTemplate
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -21,7 +22,12 @@ vector_store = FAISS.load_local(
 )
 
 llm = ChatGoogleGenerativeAI(model = Config.LLM_MODEL)
-rag_prompt = hub.pull('rlm/rag-prompt')
+
+# Define RAG prompt directly instead of using hub.pull()
+rag_prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use three sentences maximum and keep the answer concise.\n\nContext: {context}"),
+    ("human", "{question}")
+])
 
 
 def rag_retrieve(state: RAGState) -> dict:

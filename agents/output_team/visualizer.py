@@ -50,8 +50,11 @@ def visualizer_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
             plt.savefig(filepath)
             plt.close()
             
-            response_text = f"I've generated a visualization for you:\n![Visualization]({filepath})"
+            # --- FIX: Force forward slashes for Markdown compatibility ---
+            web_path = filepath.replace("\\", "/")
+            response_text = f"I've generated a visualization for you:\n![Visualization]({web_path})"
             
+               
         except Exception as e:
             response_text = f"❌ Failed to generate visualization: {e}"
     else:

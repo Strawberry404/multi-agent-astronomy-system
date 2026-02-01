@@ -13,7 +13,7 @@ class Config:
 
     # Models
     EMBEDDING_MODEL = "sentence-transformers/all-mpnet-base-v2"
-    LLM_MODEL = "gemini-2.5-flash"
+    LLM_MODEL = "gemini-2.5-pro"
     DEVICE = "cpu"
 
     # Vector Store

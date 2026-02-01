@@ -55,16 +55,51 @@ def query_nasa_neo(date: str = "today") -> Dict[str, Any]:
     response.raise_for_status()
     return response.json()
 
-def query_mars_rover_photos(rover: str = "curiosity", sol: int = 1000) -> Dict[str, Any]:
-    """Query Mars Rover Photos API"""
-    url = f"https://api.nasa.gov/mars-photos/api/v1/rovers/{rover}/photos"
+def query_nasa_image_library(query: str, limit: int = 3) -> Dict[str, Any]:
+    """
+    Query NASA Image and Video Library.
+    Docs: https://images.nasa.gov/docs/image-search.html
+    """
+    url = "https://images-api.nasa.gov/search"
     params = {
-        "sol": sol,
-        "api_key": Config.NASA_API_KEY
+        "q": query,
+        "media_type": "image",
+        "page_size": limit
     }
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    return response.json()
+    
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Parse the complex response structure
+        items = data.get("collection", {}).get("items", [])
+        results = []
+        
+        for item in items:
+            # Get the image link
+            links = item.get("links", [])
+            image_url = next((link["href"] for link in links if link.get("render") == "image"), None)
+            
+            # Get metadata
+            data_core = item.get("data", [{}])[0]
+            title = data_core.get("title", "Unknown")
+            description = data_core.get("description", "No description.")
+            date_created = data_core.get("date_created", "")[:10]
+            
+            if image_url:
+                results.append({
+                    "title": title,
+                    "description": description,
+                    "date": date_created,
+                    "image_url": image_url
+                })
+                
+        return {"images": results}
+        
+    except Exception as e:
+        print(f"⚠️ Image Library Error: {e}")
+        return {"images": []}
 
 def query_exoplanet_archive() -> List[Dict[str, Any]]:
     """Query NASA Exoplanet Archive"""
@@ -158,25 +193,27 @@ def database_agent_node(state: DataTeamState) -> dict:
             response_text = format_neo_response(neo_data)
             data['neo'] = neo_data
             
-        elif "mars" in query and ("photo" in query or "image" in query or "rover" in query):
-            rover = "curiosity"
-            if "perseverance" in query:
-                rover = "perseverance"
+
+        elif "photo" in query or "image" in query or "show me" in query:
+            # 1. Clean up the query to get the search term (e.g. "photos of jupiter" -> "jupiter")
+            search_term = query.replace("show me", "").replace("photos", "").replace("images", "").replace("of", "").strip()
+            if not search_term:
+                search_term = "space" # Default fallback
             
-            mars_data = query_mars_rover_photos(rover=rover)
-            photos = mars_data.get('photos', [])
+            # 2. Query the new library
+            results = query_nasa_image_library(search_term)
+            images = results.get("images", [])
             
-            response_text = f"📸 Mars Rover Photos ({rover.capitalize()}):\n"
-            response_text += f"Found {len(photos)} photos\n\n"
-            
-            for i, photo in enumerate(photos[:3]):
-                response_text += f"{i+1}. Camera: {photo.get('camera', {}).get('full_name', 'N/A')}\n"
-                response_text += f"   Date: {photo.get('earth_date', 'N/A')}\n"
-                response_text += f"   Image: {photo.get('img_src', 'N/A')}\n\n"
-            
-            data['mars_photos'] = mars_data
-            data['photos'] = photos  # Also store photos directly for easier access
-            
+            if images:
+                response_text = f"📸 **NASA Images for '{search_term.capitalize()}'**:\n\n"
+                for i, img in enumerate(images):
+                    response_text += f"**{i+1}. {img['title']}** ({img['date']})\n"
+                    response_text += f"{img['image_url']}\n\n"
+                
+                # Store data for the UI/Visualizer
+                data['images'] = images
+            else:
+                response_text = f"⚠️ No images found for '{search_term}'."
         elif "exoplanet" in query:
             exo_data = query_exoplanet_archive()
             

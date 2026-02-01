@@ -30,3 +30,13 @@ class DataTeamState(TypedDict, total=False):
     visibility_info: Dict[str, Any]
     location: Optional[Dict[str, float]]
     date_time: Optional[str]
+
+
+# --- ADD THIS NEW CLASS ---
+class OutputTeamState(TypedDict, total=False):
+    """State for the output team subgroup."""
+    messages: Annotated[List[BaseMessage], operator.add] # <--- Crucial: Appends messages!
+    team_members: List[str]
+    next: str
+    astronomical_data: Dict[str, Any] # Inherit data from other teams
+    calculations: Dict[str, Any]

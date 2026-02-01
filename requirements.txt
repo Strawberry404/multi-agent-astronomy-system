@@ -18,4 +18,5 @@ plotly
 streamlit
 langchain-huggingface
 langchain-tavily
+langchainhub
 python-dotenv

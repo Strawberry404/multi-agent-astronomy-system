@@ -90,8 +90,16 @@ def sky_position_node(state: DataTeamState) -> dict:
                     visibility_info[obj] = pos
                     response_text += f"📍 {obj.capitalize()}:\n"
                     response_text += f"  Altitude: {pos['altitude']:.1f}°\n"
-                    response_text += f"  Visible: {'Yes' if pos['is_visible'] else 'No'}\n\n"
-    
+                    response_text += f"  Visible: {'Yes' if pos['is_visible'] else 'No'}\n"
+                    
+                    # --- ADD THESE LINES ---
+                    if pos.get('next_rising'):
+                        # Format the datetime nicely
+                        rise_time = pos['next_rising'].strftime('%H:%M UTC')
+                        response_text += f"  Rises: {rise_time}\n"
+                    # -----------------------
+                    
+                    response_text += "\n"
     except Exception as e:
         response_text = f"❌ Error: {str(e)}"
     
